@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "lab01"
+version = "0.1.0"
+description = "Лабораторная работа 1"
+authors = ["Emelyanov Matvey"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^2.4.2"
+matplotlib = "^3.10.8"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.4"
+mypy = "^1.15.0"
+line-profiler = "^5.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
