@@ -2,6 +2,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 from typing import Callable, Tuple, List, Dict, Any
+import os
 
 
 def gauss_seidel_standard(
@@ -77,25 +78,27 @@ def gauss_seidel_numpy(
     while True:
         u_old = u.copy()
 
-        # u[1:-1, 1:-1] = (u[2:, 1:-1] + u[:-2, 1:-1] + u[1:-1, 2:] + u[1:-1, :-2]) / 4
-
         # Ничего, что используется "шахматный" метод Гаусса-Зейделя?
         # У них одинаковая сходимость.
         # Я не знаю, как иначе тогда использовать NumPy.
 
         # "Красные" узлы
-        u[1:-1:2, 1:-1:2] = (u[0:-2:2, 1:-1:2] + u[2::2, 1:-1:2] + 
-                             u[1:-1:2, 0:-2:2] + u[1:-1:2, 2::2]) / 4
-                            
-        u[2:-1:2, 2:-1:2] = (u[1:-2:2, 2:-1:2] + u[3::2, 2:-1:2] + 
-                             u[2:-1:2, 1:-2:2] + u[2:-1:2, 3::2]) / 4
+        u[1:-1:2, 1:-1:2] = (
+            u[0:-2:2, 1:-1:2] + u[2::2, 1:-1:2] + u[1:-1:2, 0:-2:2] + u[1:-1:2, 2::2]
+        ) / 4
+
+        u[2:-1:2, 2:-1:2] = (
+            u[1:-2:2, 2:-1:2] + u[3::2, 2:-1:2] + u[2:-1:2, 1:-2:2] + u[2:-1:2, 3::2]
+        ) / 4
 
         # "Черные" узлы
-        u[1:-1:2, 2:-1:2] = (u[0:-2:2, 2:-1:2] + u[2::2, 2:-1:2] + 
-                             u[1:-1:2, 1:-2:2] + u[1:-1:2, 3::2]) / 4
-                            
-        u[2:-1:2, 1:-1:2] = (u[1:-2:2, 1:-1:2] + u[3::2, 1:-1:2] + 
-                             u[2:-1:2, 0:-2:2] + u[2:-1:2, 2::2]) / 4
+        u[1:-1:2, 2:-1:2] = (
+            u[0:-2:2, 2:-1:2] + u[2::2, 2:-1:2] + u[1:-1:2, 1:-2:2] + u[1:-1:2, 3::2]
+        ) / 4
+
+        u[2:-1:2, 1:-1:2] = (
+            u[1:-2:2, 1:-1:2] + u[3::2, 1:-1:2] + u[2:-1:2, 0:-2:2] + u[2:-1:2, 2::2]
+        ) / 4
 
         max_diff = np.max(np.abs(u - u_old))
 
@@ -109,14 +112,14 @@ def gauss_seidel_numpy(
     return u, end_time - start_time, iteration
 
 
-def plot_solution(u: np.ndarray, h: float, title: str, filename: str):
+def plot_solution(u: np.ndarray, h: float, title: str, filename: str) -> None:
     n = u.shape[0] - 1
     x = np.linspace(0, 1, n + 1)
     y = np.linspace(0, 1, n + 1)
     X, Y = np.meshgrid(x, y)
 
     plt.figure(figsize=(10, 8))
-    contour = plt.contourf(X, Y, u, levels=50, cmap="viridis")
+    contour = plt.contourf(X, Y, u.T, levels=50, cmap="viridis")
     plt.colorbar(contour)
     plt.title(title)
     plt.xlabel("x")
@@ -127,8 +130,10 @@ def plot_solution(u: np.ndarray, h: float, title: str, filename: str):
 
 
 def run_experiment(
-    h_values: List[float], epsilon_values: List[float], output_dir: str = "results"
-) -> Dict[Tuple[float, float], Dict[str, Dict[str, Any]]]:
+        h_values: List[float],
+        epsilon_values: List[float],
+        output_dir: str = "results"
+) -> Dict[Tuple[float, float], Any]:
     def f1(y: float) -> float:
         return 1.0
 
@@ -141,41 +146,28 @@ def run_experiment(
     def f4(x: float) -> float:
         return x + 1.0
 
-    import os
-
     os.makedirs(output_dir, exist_ok=True)
 
-    results: Dict[Tuple[float, float], Dict[str, Any]] = {
-        (h, eps): {
-            "standard": {"time": 0.0, "iterations": 0},
-            "numpy": {"time": 0.0, "iterations": 0},
-            "convergence": 0.0,
-        }
-        for eps in epsilon_values
-        for h in h_values
-    }
+    results: Dict[Tuple[float, float], Any] = {}
 
     for h in h_values:
         for eps in epsilon_values:
-            # Просто Python
+            # Standard
             u_standard, time_standard, iterations_standard = gauss_seidel_standard(
                 f1, f2, f3, f4, h, eps
             )
 
-            # Реализация с NumPy
+            # NumPy
             u_numpy, time_numpy, iterations_numpy = gauss_seidel_numpy(
                 f1, f2, f3, f4, h, eps
             )
 
-            max_diff = np.max(np.abs(u_standard - u_numpy))
+            results[(h, eps)] = {
+                "standard": (time_standard, iterations_standard),
+                "numpy": (time_numpy, iterations_numpy),
+                "convergence": np.max(np.abs(u_standard - u_numpy))
 
-            results[(h, eps)]["standard"]["time"] = time_standard
-            results[(h, eps)]["standard"]["iterations"] = iterations_standard
-
-            results[(h, eps)]["numpy"]["time"] = time_numpy
-            results[(h, eps)]["numpy"]["iterations"] = iterations_numpy
-
-            results[(h, eps)]["convergence"] = max_diff
+            }
 
             title = f"h={h}, eps={eps}"
             plot_solution(u_standard, h, title, f"{output_dir}/h_{h}_eps_{eps}.png")
@@ -184,30 +176,29 @@ def run_experiment(
     return results
 
 
-def main():
+def main() -> None:
     # Я 7 по списку, поэтому 7 вариант
     h_values = [0.1, 0.01, 0.005]
     epsilon_values = [0.1, 0.01, 0.001]
 
     results = run_experiment(h_values, epsilon_values, "results")
 
-    print("\n                                                    === Результаты эксперимента ===")
-    
-    print("| h     | ε     | Время (Стандартная) | Итерации (Стандартная) | Время (NumPy) | Итерации (NumPy) | Максимальная разница | Ускорение |")
-    print("| ----- | ----- | ------------------- | ---------------------- | ------------- | ---------------- | -------------------- | --------- |")
+    print(
+        "\n"
+        "                                                    === Результаты эксперимента ===\n"
+        "\n"
+        "| h     | ε     | Время (Стандартная) | Итерации (Стандартная) | Время (NumPy) | Итерации (NumPy) | Максимальная разница | Ускорение |\n"
+        "| ----- | ----- | ------------------- | ---------------------- | ------------- | ---------------- | -------------------- | --------- |"
+    )
 
     for h in h_values:
         for eps in epsilon_values:
-            time_standart = results[(h, eps)]["standard"]["time"]
-            iterations_standart = results[(h, eps)]["standard"]["iterations"]
-
-            time_numpy = results[(h, eps)]["numpy"]["time"]
-            iterations_numpy = results[(h, eps)]["numpy"]["iterations"]
-
+            time_standart, iterations_standart = results[(h, eps)]["standard"]
+            time_numpy, iterations_numpy = results[(h, eps)]["numpy"]
             convergence = results[(h, eps)]["convergence"]
 
             print(
-                f"| {h:<5} | {eps:<5} | {time_standart:<19.2e} | {iterations_standart:<22} | {time_numpy:<13.4e} | {iterations_numpy:<16} | {convergence:<20.2e} | {(time_standart / time_numpy if time_numpy > 0.0 else 1.0):<9.3f} |"
+                f"| {h:<5} | {eps:<5} | {time_standart:<19.2e} | {iterations_standart:<22} | {time_numpy:<13.4e} | {iterations_numpy:<16} | {convergence:<20.2e} | {(time_standart / time_numpy if time_numpy > 0.0 else 0.0):<9.3f} |"
             )
 
 
