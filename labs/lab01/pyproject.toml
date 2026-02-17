@@ -3,7 +3,6 @@ name = "lab01"
 version = "0.1.0"
 description = "Лабораторная работа 1"
 authors = ["Emelyanov Matvey"]
-build = "build.py"
 
 [tool.poetry.dependencies]
 python = "^3.12"
