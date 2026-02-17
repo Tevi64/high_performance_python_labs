@@ -14,22 +14,18 @@ py::tuple gauss_seidel_cpp(
 ) {
     int n = static_cast<int>(1.0 / h);
     
-    // Создаем массив NumPy
     py::array_t<double> u({n + 1, n + 1});
     auto u_unchecked = u.mutable_unchecked<2>();
     
-    // Инициализация нулями
     for (int i = 0; i <= n; i++) {
         for (int j = 0; j <= n; j++) {
             u_unchecked(i, j) = 0.0;
         }
     }
 
-    // Подготовка координат
     std::vector<double> coord(n + 1);   
     for (int i = 0; i <= n; i++) coord[i] = i * h;
     
-    // Граничные условия
     for (int j = 0; j <= n; j++) {
         u_unchecked(0, j) = f1(coord[j]).cast<double>();
         u_unchecked(n, j) = f2(coord[j]).cast<double>();
@@ -47,17 +43,13 @@ py::tuple gauss_seidel_cpp(
         
         for (int i = 1; i < n; i++) {
             for (int j = 1; j < n; j++) {
-                // Запоминаем только ОДНО старое значение
                 double old_val = u_unchecked(i, j);
                 
-                // Считаем новое значение
                 double new_val = (u_unchecked(i - 1, j) + u_unchecked(i + 1, j) + 
                                   u_unchecked(i, j - 1) + u_unchecked(i, j + 1)) / 4.0;
                 
-                // Обновляем прямо в массиве
                 u_unchecked(i, j) = new_val;
-                
-                // Считаем разницу для этой ячейки
+
                 double diff = std::abs(new_val - old_val);
                 if (diff > max_diff) max_diff = diff;
             }
@@ -65,7 +57,6 @@ py::tuple gauss_seidel_cpp(
         
         iteration++;
         
-        // Условие выхода
         if (max_diff < epsilon || iteration > 1000000) {
             break;
         }
