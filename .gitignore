@@ -197,5 +197,7 @@ pyrightconfig.json
 # Профайлер
 .lprof
 
+*.lock
+
 # Результаты
 results/
