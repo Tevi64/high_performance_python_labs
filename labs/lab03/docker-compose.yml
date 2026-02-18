@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  lab01:
+    build:
+      context: .
+      dockerfile: Dockerfile.lab01
+    volumes:
+      - shared_data:/shared
+
+  lab02:
+    build:
+      context: .
+      dockerfile: Dockerfile.lab02
+    volumes:
+      - shared_data:/shared
+
+  web_client:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "8000:8000"
+    volumes:
+      - shared_data:/results
+    depends_on:
+      - lab01
+      - lab02
+
+volumes:
+  shared_data:
